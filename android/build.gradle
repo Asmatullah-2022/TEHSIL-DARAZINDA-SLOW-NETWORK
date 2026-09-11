@@ -4,13 +4,7 @@
 // block, which is the modern declarative plugin-management mechanism
 // Flutter's own current project template uses. This file must NOT
 // also declare them via a legacy `buildscript { dependencies {
-// classpath ... } }` block — having both simultaneously is what
-// caused plugin subprojects (e.g. geolocator_android) to fail
-// evaluating with "Could not get unknown property 'flutter'" /
-// "compileSdkVersion is not specified": mixing the two plugin-
-// application mechanisms leaves the Flutter Gradle plugin's
-// cross-project `flutter` extension wiring inconsistent. See git
-// history for the diagnosis.
+// classpath ... } }` block.
 
 allprojects {
     repositories {
@@ -25,6 +19,55 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(':app')
+}
+
+// ---------------------------------------------------------------------
+// Root-cause fix, confirmed against actual CI logs (see git history):
+//
+// `flutter build apk` genuinely evaluates `:app` first and creates the
+// `flutter` extension there (via `project.extensions.create("flutter",
+// FlutterExtension)` in the Flutter Gradle plugin, applied only to
+// `:app`). Other Flutter plugins that are Kotlin/Java Android
+// libraries — geolocator_android 4.6.2 among them — are included as
+// separate top-level subprojects (siblings of `:app`, not descendants)
+// by Flutter's own `app_plugin_loader.groovy`, and their own
+// `android/build.gradle` references the bare, unqualified property
+// `flutter.compileSdkVersion` / `flutter.minSdkVersion`, expecting it
+// to resolve to that same extension.
+//
+// CI logs prove this reference does NOT reliably resolve for sibling
+// subprojects in this Gradle/AGP/Flutter combination: the build fails
+// specifically evaluating `:geolocator_android` with "Could not get
+// unknown property 'flutter' for extension 'android'", even though
+// `:app` itself, and other plugins whose build.gradle hardcodes a
+// literal `compileSdk` value instead of referencing `flutter.*` (e.g.
+// flutter_plugin_android_lifecycle), evaluate without error. Pinning
+// AGP/Kotlin/Gradle to Flutter 3.24.5's own template baseline (see
+// prior commits) did not change this.
+//
+// Fix: explicitly bridge the real `flutter` extension object from
+// `:app` onto every other subproject as an extra property, before
+// that subproject's own build.gradle runs. `evaluationDependsOn(':app')`
+// above already guarantees `:app` is fully evaluated (and its
+// `flutter` extension created) before any other subproject evaluates,
+// so by the time `gradle.beforeProject` fires for a plugin subproject,
+// the real extension already exists and this copies the live object —
+// not a hardcoded guess at compileSdkVersion/minSdkVersion — so it
+// always matches whatever `:app` actually resolved.
+gradle.beforeProject { project ->
+    // Skip the root project itself and :app (which creates the real
+    // extension on itself — nothing to bridge there).
+    if (project == project.rootProject || project.path == ':app') {
+        return
+    }
+    def appProject = project.rootProject.findProject(':app')
+    if (appProject == null) {
+        return
+    }
+    def flutterExtension = appProject.extensions.findByName('flutter')
+    if (flutterExtension != null && !project.extensions.extraProperties.has('flutter')) {
+        project.extensions.extraProperties.set('flutter', flutterExtension)
+    }
 }
 
 tasks.register("clean", Delete) {
