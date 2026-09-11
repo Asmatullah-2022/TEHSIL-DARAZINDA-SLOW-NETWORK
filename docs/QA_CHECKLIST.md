@@ -1,12 +1,15 @@
 # QA Checklist — Darazinda Connect
 
-**Update (Phase 2):** sections 1 and 2 below have now genuinely been
-run, in a temporary Flutter 3.24.5 / Dart 3.5.4 install inside this
-environment — not simulated. Results are inlined below each command.
-Section 4 (release build) has **not** been run: this session's network
-policy blocks `dl.google.com`, so the Android SDK could not be
+**Update (Phase 2, re-verified in Phase 3):** sections 1 and 2 below
+have now genuinely been run twice, in a temporary Flutter 3.24.5 /
+Dart 3.5.4 install inside this environment — not simulated. Results
+are inlined below each command. Section 4 (release build) has **not**
+been run: `flutter build apk --debug` was attempted in Phase 3 and
+failed immediately with `No Android SDK found` — this session's
+network policy blocks `dl.google.com`, so the Android SDK cannot be
 installed here. Sections 3 (manual device testing) and 4 still require
-a real machine/device — see `docs/REAL_DEVICE_TESTING.md`.
+a real machine/device — see `docs/LOCAL_ANDROID_SETUP.md` (Windows
+setup) and `docs/REAL_PHONE_TEST_REPORT.md` (device test template).
 
 ## 1. Static analysis
 ```bash

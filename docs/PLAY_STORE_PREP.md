@@ -1,5 +1,12 @@
 # Play Store Preparation — Darazinda Connect
 
+> **Not the current phase.** Per the project plan, this document is
+> for **Phase 4**, after the app is confirmed running on a real
+> Android phone with a real Firebase project (debug build, real
+> network data, offline sync, map, reports, and PDF all verified —
+> see `docs/REAL_PHONE_TEST_REPORT.md`). Do not create release signing
+> keys or submit to Play Store review until that checklist is done.
+
 ## Application identity
 - **Package name / application ID**: `pk.darazindaconnect.app`
   — verify availability on the Google Play Console before final

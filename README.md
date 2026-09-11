@@ -33,6 +33,15 @@ codebase — not simulated:
   claimed. See [`docs/QA_CHECKLIST.md`](docs/QA_CHECKLIST.md) for the
   exact commands to run this yourself with Android Studio installed.
 
+**Phase 3 (current):** getting the app running on a real Android phone
+with a real Firebase project. Start with
+[`docs/LOCAL_ANDROID_SETUP.md`](docs/LOCAL_ANDROID_SETUP.md) (Windows,
+beginner-friendly) if you don't already have Flutter/Android Studio on
+your own computer, then fill in
+[`docs/REAL_PHONE_TEST_REPORT.md`](docs/REAL_PHONE_TEST_REPORT.md) once
+you can run the app on a device. Play Store signing/release
+(`docs/PLAY_STORE_PREP.md`) is Phase 4 — not yet.
+
 That verification pass also caught and fixed several real bugs that
 existed in the original scaffold — among them: `READ_PHONE_STATE` was
 declared in the manifest but never actually requested at runtime (so
