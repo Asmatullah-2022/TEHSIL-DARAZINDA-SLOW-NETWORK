@@ -1,0 +1,44 @@
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+*.g.dart.bak
+
+# Generated code (regenerate with `flutter pub run build_runner build`)
+# NOTE: *.g.dart for Drift and *.freezed.dart are intentionally
+# git-ignored; run build_runner locally/in CI before building.
+lib/**/*.g.dart
+lib/**/*.freezed.dart
+
+# Android
+android/local.properties
+android/**/google-services.json
+android/key.properties
+*.jks
+*.keystore
+
+# iOS
+ios/Flutter/Flutter.podspec
+ios/Pods/
+ios/.symlinks/
+**/GoogleService-Info.plist
+
+# Web
+admin_dashboard/build/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Firebase (never commit real project credentials)
+firebase-debug.log
+.firebase/

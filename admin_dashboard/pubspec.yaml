@@ -1,0 +1,29 @@
+name: darazinda_connect_admin
+description: >
+  Darazinda Connect — Admin Web Dashboard. A separate Flutter Web app
+  (its own deployable) for moderating reports, reviewing measurements,
+  and viewing community statistics across the whole Tehsil.
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  firebase_core: ^3.1.0
+  firebase_auth: ^5.1.0
+  cloud_firestore: ^5.0.1
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+  intl: ^0.19.0
+  fl_chart: ^0.68.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
