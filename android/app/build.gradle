@@ -23,7 +23,16 @@ def flutterVersionName = localProperties.getProperty('flutter.versionName') ?: '
 
 android {
     namespace "pk.darazindaconnect.app"
-    compileSdk 34
+    // Deliberately read from the `flutter` extension (injected by the
+    // dev.flutter.flutter-gradle-plugin applied above), NOT hardcoded
+    // literals. Flutter plugin packages (e.g. geolocator_android) ship
+    // their own android/build.gradle referencing `flutter.compileSdkVersion`
+    // directly; if this app module doesn't also resolve compileSdk/
+    // ndkVersion through that same extension, Gradle can fail evaluating
+    // those plugin subprojects with "Could not get unknown property
+    // 'flutter'" / "compileSdkVersion is not specified" — exactly the
+    // real failure hit in CI before this fix (see git history).
+    compileSdk flutter.compileSdkVersion
     ndkVersion flutter.ndkVersion
 
     compileOptions {
@@ -43,7 +52,7 @@ android {
         // Verify availability on Google Play Console before final publication.
         applicationId "pk.darazindaconnect.app"
         minSdk 23
-        targetSdk 34
+        targetSdk flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
     }
