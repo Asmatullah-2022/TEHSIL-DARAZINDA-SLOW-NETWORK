@@ -3,19 +3,38 @@ rules_version = '2';
 // Darazinda Connect — Firestore Security Rules
 //
 // Principles:
-//  - Measurements, reports, and surveys are appended by any signed-in
-//    OR anonymous (guest) client, but a document's owner fields
-//    (userId / anonymousDeviceId) must match the identity that created
-//    it and can never be changed after creation.
+//  - Measurements and reports are appended by any signed-in OR
+//    anonymous (guest) client. Ownership (who submitted what) is
+//    NEVER stored on the public document itself — see "Privacy: no
+//    PII on public documents" below. Public documents are immutable
+//    once written (measurements) or editable only via a private
+//    ownership check (reports), and are otherwise admin-only.
 //  - Public read access is allowed on aggregated/public collections
-//    (measurements, schools, health_facilities) since the whole point
-//    of the app is a shared community map — but no collection exposes
-//    email, phone, or other private profile fields; those live only in
-//    /users/{uid} and are owner-readable only.
+//    (measurements, reports, schools, health_facilities) since the
+//    whole point of the app is a shared community map — but no public
+//    collection exposes a Firebase UID, email, name, phone number, or
+//    any other account-identifying field. `anonymousDeviceId` is a
+//    random, per-install identifier (not tied to any account) and is
+//    the only "who submitted this" signal a public reader ever sees —
+//    see docs/DATA_MODEL.md "Privacy model" for the full rationale.
 //  - Only users with a custom claim `admin: true` (set via Cloud
-//    Functions / Firebase Admin SDK, never client-side) may update
-//    report status, or read/write anything under /admin.
+//    Functions / Firebase Admin SDK, never client-side, never a
+//    Firestore-stored flag) may update report status, read ownership
+//    records, or read/write anything under /admin.
 //  - Mutation of another user's document is always denied.
+//
+// Privacy: no PII on public documents
+// ------------------------------------
+// A signed-in citizen's real Firebase UID (the one thing that could
+// let a public reader correlate multiple map entries to the same
+// *registered* account) is written ONLY to a separate,
+// owner-and-admin-readable collection (`measurement_owners` /
+// `report_owners`), never to the public `measurements` / `reports`
+// document. `hasOnly()` below is not just documentation — it is
+// enforced by Firestore itself: a create/update that includes any key
+// outside the public allowlist (e.g. a `userId`/`ownerUid`-shaped
+// field) is rejected, so this cannot regress by an app-code mistake
+// alone reintroducing the field.
 
 function isSignedIn() {
   return request.auth != null;
@@ -25,8 +44,32 @@ function isAdmin() {
   return isSignedIn() && request.auth.token.admin == true;
 }
 
-function isOwner(resourceData) {
-  return isSignedIn() && resourceData.userId == request.auth.uid;
+// Fields the public may ever see on a measurement. No account
+// identifier of any kind.
+function publicMeasurementFields() {
+  return [
+    'anonymousDeviceId', 'location', 'gpsAccuracyMeters', 'operator',
+    'networkType', 'signalDbm', 'signalAsu', 'downloadMbps',
+    'uploadMbps', 'pingMs', 'measuredAt', 'isDemoData', 'createdAt'
+  ];
+}
+
+// Fields the public may ever see on a report. No account identifier
+// of any kind.
+function publicReportFields() {
+  return [
+    'anonymousDeviceId', 'category', 'description', 'photoUrl',
+    'location', 'operator', 'networkType', 'linkedMeasurementId',
+    'signalDbm', 'downloadMbps', 'uploadMbps', 'pingMs',
+    'gpsAccuracyMeters', 'status', 'createdAt', 'updatedAt'
+  ];
+}
+
+function isOwnerOfReport(reportId) {
+  return isSignedIn() &&
+    exists(/databases/$(database)/documents/report_owners/$(reportId)) &&
+    get(/databases/$(database)/documents/report_owners/$(reportId)).data.ownerUid
+      == request.auth.uid;
 }
 
 service cloud.firestore {
@@ -38,37 +81,66 @@ service cloud.firestore {
       allow read: if isAdmin();
     }
 
-    // Public, community-sourced signal measurements.
+    // Public, community-sourced signal measurements. Immutable once
+    // written by design (evidence integrity) — no owner-edit path at
+    // all, only admins may update/delete.
     match /measurements/{measurementId} {
       allow read: if true;
       allow create: if
-        (isSignedIn() && request.resource.data.userId == request.auth.uid) ||
-        (!isSignedIn() && request.resource.data.userId == null &&
-          request.resource.data.anonymousDeviceId is string);
-      // Measurements are immutable evidence once written.
+        request.resource.data.keys().hasOnly(publicMeasurementFields()) &&
+        request.resource.data.anonymousDeviceId is string;
       allow update, delete: if isAdmin();
+    }
+
+    // Private ownership record for a measurement — who (if anyone,
+    // signed-in) actually submitted it. Never publicly readable.
+    // Written once at creation time by the submitting client itself,
+    // alongside (not instead of) the public measurement document.
+    match /measurement_owners/{measurementId} {
+      allow read: if isSignedIn() &&
+        (resource.data.ownerUid == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() &&
+        request.resource.data.ownerUid == request.auth.uid &&
+        request.resource.data.keys().hasOnly(['ownerUid', 'anonymousDeviceId', 'createdAt']);
+      allow update: if false;
+      allow delete: if isAdmin();
     }
 
     // Citizen-submitted problem reports.
     match /reports/{reportId} {
       allow read: if true;
       allow create: if
-        (isSignedIn() && request.resource.data.userId == request.auth.uid) ||
-        (!isSignedIn() && request.resource.data.userId == null &&
-          request.resource.data.anonymousDeviceId is string);
-      // Only the original submitter may edit description/photo (not
-      // status); only admins may change status.
+        request.resource.data.keys().hasOnly(publicReportFields()) &&
+        request.resource.data.anonymousDeviceId is string;
+      // Only the verified owner (via the private report_owners
+      // record — never a field on this document) may edit
+      // description/photo, and only while status is unchanged; only
+      // admins may change status. hasOnly() also blocks an edit from
+      // sneaking in a new field.
       allow update: if isAdmin() ||
-        (isOwner(resource.data) &&
-          request.resource.data.status == resource.data.status &&
-          request.resource.data.userId == resource.data.userId);
+        (isOwnerOfReport(reportId) &&
+          request.resource.data.keys().hasOnly(publicReportFields()) &&
+          request.resource.data.status == resource.data.status);
+      allow delete: if isAdmin();
+    }
+
+    // Private ownership record for a report — same shape and purpose
+    // as measurement_owners above.
+    match /report_owners/{reportId} {
+      allow read: if isSignedIn() &&
+        (resource.data.ownerUid == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() &&
+        request.resource.data.ownerUid == request.auth.uid &&
+        request.resource.data.keys().hasOnly(['ownerUid', 'anonymousDeviceId', 'createdAt']);
+      allow update: if false;
       allow delete: if isAdmin();
     }
 
     // Open to guest contribution by design (schools/health facilities
     // are surveyed anonymously, same as measurements/reports). Abuse
     // mitigation is via Firebase App Check, not an auth requirement —
-    // see docs/ARCHITECTURE.md.
+    // see docs/ARCHITECTURE.md. Neither collection ever carries an
+    // account identifier (no signed-in-only path exists for these).
     match /schools/{schoolId} {
       allow read: if true;
       allow create: if true;

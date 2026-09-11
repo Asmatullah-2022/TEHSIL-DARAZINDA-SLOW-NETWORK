@@ -77,6 +77,19 @@ This is enforced structurally, not just by convention:
   `ReportProblemScreen` and `PdfReportGenerator`. That would require a
   real, documented integration (none exists in this codebase).
 
+## No PII on public documents
+
+`measurements` and `reports` are publicly readable (the community map
+needs that), but neither document ever contains a Firebase UID, email,
+name, or phone number — enforced by `firestore.rules`'
+`hasOnly(publicMeasurementFields()/publicReportFields())`, which
+rejects any write containing a field outside that allowlist. A signed-
+in citizen's ownership is recorded only in `measurement_owners` /
+`report_owners`, readable solely by that citizen (`ownerUid ==
+request.auth.uid`) or an admin. See `docs/DATA_MODEL.md` → "Privacy
+model" for the full rationale and what remains intentionally visible
+(`anonymousDeviceId`, a pseudonymous per-install identifier).
+
 ## Why OpenStreetMap (flutter_map) instead of Google Maps
 
 A civic-tech project for a specific Tehsil doesn't need Google's

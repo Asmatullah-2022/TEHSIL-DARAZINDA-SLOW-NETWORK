@@ -77,8 +77,14 @@ class SyncService {
         .getSingleOrNull();
     if (row == null) return;
 
+    // The public document deliberately never carries `userId` — a
+    // real Firebase UID is the one field that would let anyone
+    // browsing the public map correlate multiple entries to the same
+    // registered account. Ownership (needed only for this device's
+    // own bookkeeping / future admin moderation) is written to a
+    // separate, non-public collection instead. See
+    // firestore.rules and docs/DATA_MODEL.md "Privacy model".
     await _firestore!.collection('measurements').doc(row.id).set({
-      'userId': row.userId,
       'anonymousDeviceId': row.anonymousDeviceId,
       'location': GeoPoint(row.latitude, row.longitude),
       'gpsAccuracyMeters': row.gpsAccuracyMeters,
@@ -93,6 +99,14 @@ class SyncService {
       'isDemoData': row.isDemoData,
       'createdAt': FieldValue.serverTimestamp(),
     });
+
+    if (row.userId != null) {
+      await _firestore.collection('measurement_owners').doc(row.id).set({
+        'ownerUid': row.userId,
+        'anonymousDeviceId': row.anonymousDeviceId,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
 
     await (_db.update(_db.measurements)
           ..where((tbl) => tbl.id.equals(id)))
@@ -127,8 +141,11 @@ class SyncService {
           .getSingle();
     }
 
+    // Same privacy rule as measurements: no `userId` on the public
+    // document. Ownership lives only in report_owners, which the
+    // owner-edit rule in firestore.rules checks via get() rather than
+    // trusting a field on this document.
     await _firestore!.collection('reports').doc(row.id).set({
-      'userId': row.userId,
       'anonymousDeviceId': row.anonymousDeviceId,
       'category': row.category,
       'description': row.description,
@@ -146,6 +163,14 @@ class SyncService {
       'createdAt': Timestamp.fromDate(row.createdAt),
       'updatedAt': Timestamp.fromDate(row.updatedAt),
     });
+
+    if (row.userId != null) {
+      await _firestore.collection('report_owners').doc(row.id).set({
+        'ownerUid': row.userId,
+        'anonymousDeviceId': row.anonymousDeviceId,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
 
     await (_db.update(_db.reports)..where((tbl) => tbl.id.equals(id)))
         .write(const ReportsCompanion(syncStatus: Value('synced')));

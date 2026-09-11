@@ -59,7 +59,14 @@ class CommunityMeasurementRepository {
 
       return Measurement(
         id: doc.id,
-        userId: data['userId'] as String?,
+        // Deliberately never populated from community reads: the
+        // public `measurements` collection no longer carries a
+        // `userId` field at all (see firestore.rules), and even if a
+        // legacy/malformed document somehow had one, this repository
+        // must not surface another device's account identifier into
+        // this device's UI. `null` here always means "not this
+        // device's own data" for a community entry, which is correct.
+        userId: null,
         anonymousDeviceId: data['anonymousDeviceId'] as String? ?? 'unknown',
         latitude: location.latitude,
         longitude: location.longitude,
