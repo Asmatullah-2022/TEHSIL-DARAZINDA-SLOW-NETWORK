@@ -1,17 +1,16 @@
-buildscript {
-    ext.kotlin_version = '1.9.24'
-    repositories {
-        google()
-        mavenCentral()
-    }
-
-    dependencies {
-        classpath 'com.android.tools.build:gradle:8.3.0'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath 'com.google.gms:google-services:4.4.2'
-        classpath 'com.google.firebase:firebase-crashlytics-gradle:3.0.2'
-    }
-}
+// NOTE: com.android.application, org.jetbrains.kotlin.android,
+// com.google.gms.google-services and com.google.firebase.crashlytics
+// are declared (with `apply false`) in settings.gradle's `plugins {}`
+// block, which is the modern declarative plugin-management mechanism
+// Flutter's own current project template uses. This file must NOT
+// also declare them via a legacy `buildscript { dependencies {
+// classpath ... } }` block — having both simultaneously is what
+// caused plugin subprojects (e.g. geolocator_android) to fail
+// evaluating with "Could not get unknown property 'flutter'" /
+// "compileSdkVersion is not specified": mixing the two plugin-
+// application mechanisms leaves the Flutter Gradle plugin's
+// cross-project `flutter` extension wiring inconsistent. See git
+// history for the diagnosis.
 
 allprojects {
     repositories {
