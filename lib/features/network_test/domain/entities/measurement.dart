@@ -26,6 +26,7 @@ class Measurement extends Equatable {
     this.pingMs,
     this.isDemoData = false,
     this.syncStatus = SyncStatus.pendingSync,
+    this.isFromCommunity = false,
   });
 
   final String id;
@@ -49,6 +50,14 @@ class Measurement extends Equatable {
   final DateTime measuredAt;
   final bool isDemoData;
   final SyncStatus syncStatus;
+
+  /// True for a measurement pulled from Firestore (another device's
+  /// contribution), as opposed to one that originated on this device.
+  /// Used to combine "my local measurements" with "the shared
+  /// community dataset" for the map/statistics/dead-zone screens
+  /// without double-counting a measurement that is both local and
+  /// already synced.
+  final bool isFromCommunity;
 
   SignalQuality get signalQuality => SignalQuality.fromDbm(signalDbm);
 

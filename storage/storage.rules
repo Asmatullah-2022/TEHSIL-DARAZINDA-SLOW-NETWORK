@@ -1,0 +1,53 @@
+rules_version = '2';
+
+// Darazinda Connect — Firebase Storage Security Rules
+//
+// Only report photos are stored here (see ReportProblemScreen). Photos
+// are optional evidence attached to a citizen's own report.
+//
+// Layout: /report_photos/{reportId}/{fileName}
+//
+// Rules:
+//  - Any client (including guests — the mobile app supports fully
+//    anonymous, non-authenticated usage, matching the Firestore rules
+//    for `reports`) may upload a photo under a report they are
+//    creating, capped at 8MB and restricted to image content types, to
+//    keep storage costs bounded and prevent arbitrary file hosting
+//    abuse. Recommended hardening once traffic grows: require Firebase
+//    App Check on the upload path (see docs/ARCHITECTURE.md) so this
+//    stays open to genuine guests without being open to bots.
+//  - Public read is allowed because report photos are part of the
+//    public evidence record shown in "My Reports" / admin dashboard —
+//    exactly like the Firestore `reports` collection itself.
+//  - Only admins (custom claim `admin: true`) may delete a photo.
+//  - No other paths are writable.
+
+function isSignedIn() {
+  return request.auth != null;
+}
+
+function isAdmin() {
+  return isSignedIn() && request.auth.token.admin == true;
+}
+
+function isValidImageUpload() {
+  return request.resource.size < 8 * 1024 * 1024
+    && request.resource.contentType.matches('image/.*');
+}
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    match /report_photos/{reportId}/{fileName} {
+      allow read: if true;
+      allow create: if isValidImageUpload();
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    // Deny everything else by default.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -51,6 +51,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
           child: StreamBuilder<List<AdminReport>>(
             stream: widget.repo.watchReports(statusFilter: _statusFilter),
             builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Center(
+                  child: Text(
+                    'Failed to load reports: ${snapshot.error}',
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                );
+              }
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
               final reports = snapshot.data ?? [];
               if (reports.isEmpty) {
                 return const Center(child: Text('No reports found.'));

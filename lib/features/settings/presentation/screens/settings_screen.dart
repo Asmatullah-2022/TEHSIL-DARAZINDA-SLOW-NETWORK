@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../../core/constants/app_constants.dart';
-import '../../../../core/database/app_database.dart';
 import '../../../../core/localization/locale_provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -86,10 +85,10 @@ class SettingsScreen extends ConsumerWidget {
             subtitle: const Text(AppConstants.privacyPolicyUrl),
             onTap: () {},
           ),
-          ListTile(
-            leading: const Icon(Icons.data_usage_outlined),
-            title: const Text('What data do we collect?'),
-            subtitle: const Text(
+          const ListTile(
+            leading: Icon(Icons.data_usage_outlined),
+            title: Text('What data do we collect?'),
+            subtitle: Text(
               'GPS location, network/operator info, and measurement '
               'results you generate. No contacts, SMS, or call history.',
             ),
@@ -102,10 +101,10 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const Divider(),
           const _SectionHeader('About'),
-          ListTile(
-            leading: const Icon(Icons.info_outline),
-            title: const Text('About Darazinda Connect'),
-            subtitle: const Text(
+          const ListTile(
+            leading: Icon(Icons.info_outline),
+            title: Text('About Darazinda Connect'),
+            subtitle: Text(
               'Darazinda Connect measures and reports network conditions. '
               'It cannot and does not boost cellular signal.',
             ),
@@ -121,10 +120,10 @@ class SettingsScreen extends ConsumerWidget {
               );
             },
           ),
-          ListTile(
-            leading: const Icon(Icons.support_agent_outlined),
-            title: const Text('Contact Support'),
-            subtitle: const Text(AppConstants.supportEmail),
+          const ListTile(
+            leading: Icon(Icons.support_agent_outlined),
+            title: Text('Contact Support'),
+            subtitle: Text(AppConstants.supportEmail),
           ),
         ],
       ),

@@ -24,7 +24,7 @@ class AppTheme {
         elevation: 0,
         centerTitle: true,
       ),
-      cardTheme: CardThemeData(
+      cardTheme: CardTheme(
         color: AppColors.surface,
         elevation: 1,
         margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 0),

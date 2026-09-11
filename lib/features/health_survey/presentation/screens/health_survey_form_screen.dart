@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/services/location_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../network_test/data/repositories/measurement_repository.dart';
 import '../../../network_test/presentation/providers/network_test_provider.dart';
 import '../../data/health_survey_repository.dart';
 

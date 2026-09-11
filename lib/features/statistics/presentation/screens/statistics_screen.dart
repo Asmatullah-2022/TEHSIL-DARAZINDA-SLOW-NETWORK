@@ -4,21 +4,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../dead_zone/presentation/screens/dead_zone_list_screen.dart';
-import '../../../network_test/presentation/providers/network_test_provider.dart';
+import '../../../network_test/data/repositories/community_measurement_repository.dart';
 import '../../../operator_comparison/presentation/screens/operator_comparison_screen.dart';
 import '../../../report_problem/data/report_repository.dart';
 
 /// Community statistics, explicitly labeled as crowdsourced. Numbers
-/// come only from what has actually been measured/reported on this
-/// device (and, once synced, the shared community dataset) — never
-/// extrapolated or estimated beyond the underlying sample.
+/// come only from what has actually been measured/reported — combining
+/// this device's own local data with the shared Firestore community
+/// dataset — never extrapolated or estimated beyond the underlying
+/// sample.
 class StatisticsScreen extends ConsumerWidget {
   const StatisticsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final measurements = ref.watch(allMeasurementsProvider).value ?? [];
-    final reports = ref.watch(myReportsProvider).value ?? [];
+    final measurements = ref.watch(combinedMeasurementsProvider).value ?? [];
+    final myReports = ref.watch(myReportsProvider).value ?? [];
+    final communityReportCount = ref.watch(communityReportCountProvider).value;
+    // Falls back to this device's own report count if the community
+    // count isn't available (offline / Firebase not configured) —
+    // still real data, just a smaller real sample, never fabricated.
+    final totalReports = communityReportCount ?? myReports.length;
     final deadZones = ref.watch(probableDeadZonesProvider);
     final operatorStats = ref.watch(operatorStatsProvider);
 
@@ -62,7 +68,7 @@ class StatisticsScreen extends ConsumerWidget {
             childAspectRatio: 1.6,
             children: [
               _StatTile(label: 'Total Measurements', value: '${measurements.length}'),
-              _StatTile(label: 'Total Reports', value: '${reports.length}'),
+              _StatTile(label: 'Total Reports', value: '$totalReports'),
               _StatTile(
                   label: 'Probable Dead Zones', value: '${deadZones.length}'),
               _StatTile(
@@ -74,7 +80,7 @@ class StatisticsScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 20),
-          Text('Network Type Distribution', style: AppTextStyles.title),
+          const Text('Network Type Distribution', style: AppTextStyles.title),
           const SizedBox(height: 8),
           if (networkTypeCounts.isEmpty)
             const Padding(
@@ -90,7 +96,7 @@ class StatisticsScreen extends ConsumerWidget {
               ),
             ),
           const SizedBox(height: 20),
-          Text('Operator Distribution', style: AppTextStyles.title),
+          const Text('Operator Distribution', style: AppTextStyles.title),
           const SizedBox(height: 8),
           if (operatorStats.isEmpty)
             const Padding(

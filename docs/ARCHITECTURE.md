@@ -122,12 +122,25 @@ Tehsil scale. Scaling nationally would mean:
    `areas` for both the mobile map and the admin dashboard to read
    cheaply.
 
+## Server-side (Cloud Functions)
+
+Implemented in `functions/` (TypeScript, not yet deployed to a real
+project — see `functions/README.md`):
+- `setAdminClaim` — the only supported way to grant/revoke the
+  `admin: true` custom claim after the first admin exists (callable,
+  admin-only). Bootstrapping the very first admin is a one-time local
+  script (`functions/scripts/setInitialAdmin.js`) run against a real
+  service account key, never committed to the repo.
+- `computeProbableDeadZones` — scheduled daily job that mirrors
+  `DeadZoneAnalyzer`'s logic over the full community dataset and
+  writes results to the `areas` collection.
+
 ## Server-side work not yet implemented
 
-- **Cloud Functions**: (a) assign the `admin: true` custom claim to
-  vetted accounts, (b) periodically recompute `areas` (probable dead
-  zones) over the full community dataset, (c) optionally generate
-  thumbnail/compressed versions of report photos on upload to Storage.
+- Thumbnail/compression of report photos on Storage upload.
 - **App Check**: recommended before opening `create` rules on
   `schools`/`health_facilities` to unauthenticated clients, to curb
   spam without requiring every citizen to create an account.
+- A `deleteUserData` callable for full erasure of a user's synced
+  Firestore documents (Settings currently only deletes local on-device
+  data).

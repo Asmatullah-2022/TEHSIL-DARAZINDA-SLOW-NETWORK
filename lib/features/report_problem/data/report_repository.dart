@@ -30,6 +30,63 @@ class ReportRepository {
     return 'DZC-$datePart-$suffix';
   }
 
+  /// Window and radius used to detect an accidental duplicate
+  /// submission (e.g. a double-tap that slipped past the disabled
+  /// button, or a retry after what looked like a failed submit).
+  static const Duration duplicateWindow = Duration(minutes: 5);
+  static const double duplicateRadiusMeters = 75;
+
+  /// Returns the existing report if the same category was already
+  /// reported from essentially the same location within
+  /// [duplicateWindow], so the UI can ask the user to confirm before
+  /// creating a second report for what is likely the same incident.
+  /// Pass [allowDuplicate]=true to skip this check once the user has
+  /// confirmed they do want to submit again.
+  Future<ProblemReport?> findLikelyDuplicate({
+    required ProblemCategory category,
+    required double latitude,
+    required double longitude,
+  }) async {
+    final anonymousId = await DeviceIdentity.getOrCreateAnonymousId();
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    final cutoff = DateTime.now().subtract(duplicateWindow);
+
+    final query = _db.select(_db.reports)
+      ..where((t) => t.category.equals(category.name))
+      ..where((t) => t.createdAt.isBiggerOrEqualValue(cutoff))
+      ..where((t) => userId != null
+          ? t.userId.equals(userId)
+          : t.anonymousDeviceId.equals(anonymousId));
+
+    final candidates = await query.get();
+    for (final row in candidates) {
+      final distance = _distanceMeters(
+        latitude,
+        longitude,
+        row.latitude,
+        row.longitude,
+      );
+      if (distance <= duplicateRadiusMeters) {
+        return _rowToEntity(row);
+      }
+    }
+    return null;
+  }
+
+  double _distanceMeters(double lat1, double lon1, double lat2, double lon2) {
+    const earthRadius = 6371000.0;
+    double degToRad(double deg) => deg * (pi / 180.0);
+    final dLat = degToRad(lat2 - lat1);
+    final dLon = degToRad(lon2 - lon1);
+    final a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(degToRad(lat1)) *
+            cos(degToRad(lat2)) *
+            sin(dLon / 2) *
+            sin(dLon / 2);
+    final c = 2 * asin(sqrt(a));
+    return earthRadius * c;
+  }
+
   Future<ProblemReport> submitReport({
     required ProblemCategory category,
     required double latitude,
@@ -39,6 +96,11 @@ class ReportRepository {
     String? operatorName,
     String? networkType,
     String? linkedMeasurementId,
+    int? signalDbm,
+    double? downloadMbps,
+    double? uploadMbps,
+    int? pingMs,
+    double? gpsAccuracyMeters,
   }) async {
     final anonymousId = await DeviceIdentity.getOrCreateAnonymousId();
     final userId = FirebaseAuth.instance.currentUser?.uid;
@@ -57,6 +119,11 @@ class ReportRepository {
       operatorName: operatorName,
       networkType: networkType,
       linkedMeasurementId: linkedMeasurementId,
+      signalDbm: signalDbm,
+      downloadMbps: downloadMbps,
+      uploadMbps: uploadMbps,
+      pingMs: pingMs,
+      gpsAccuracyMeters: gpsAccuracyMeters,
       createdAt: now,
       updatedAt: now,
     );
@@ -74,6 +141,11 @@ class ReportRepository {
             operatorName: Value(report.operatorName),
             networkType: Value(report.networkType),
             linkedMeasurementId: Value(report.linkedMeasurementId),
+            signalDbm: Value(report.signalDbm),
+            downloadMbps: Value(report.downloadMbps),
+            uploadMbps: Value(report.uploadMbps),
+            pingMs: Value(report.pingMs),
+            gpsAccuracyMeters: Value(report.gpsAccuracyMeters),
             createdAt: report.createdAt,
             updatedAt: report.updatedAt,
           ),
@@ -114,6 +186,11 @@ class ReportRepository {
       operatorName: row.operatorName,
       networkType: row.networkType,
       linkedMeasurementId: row.linkedMeasurementId,
+      signalDbm: row.signalDbm,
+      downloadMbps: row.downloadMbps,
+      uploadMbps: row.uploadMbps,
+      pingMs: row.pingMs,
+      gpsAccuracyMeters: row.gpsAccuracyMeters,
       status: ReportStatus.fromKey(row.status),
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,

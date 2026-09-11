@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/signal_quality.dart';
-import '../../../network_test/presentation/providers/network_test_provider.dart';
+import '../../../network_test/data/repositories/community_measurement_repository.dart';
 import '../providers/map_filter_provider.dart';
 
 class MapFilterSheet extends ConsumerWidget {
@@ -10,7 +10,7 @@ class MapFilterSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final measurements = ref.watch(allMeasurementsProvider).value ?? [];
+    final measurements = ref.watch(combinedMeasurementsProvider).value ?? [];
     final operators = measurements
         .map((m) => m.operatorName)
         .whereType<String>()

@@ -18,6 +18,7 @@ lib/**/*.freezed.dart
 android/local.properties
 android/**/google-services.json
 android/key.properties
+android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
 *.jks
 *.keystore
 
@@ -42,3 +43,10 @@ Thumbs.db
 # Firebase (never commit real project credentials)
 firebase-debug.log
 .firebase/
+*firebase-adminsdk*.json
+serviceAccountKey.json
+
+# Cloud Functions
+functions/node_modules/
+functions/lib/
+functions/*.log

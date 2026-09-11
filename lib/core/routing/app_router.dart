@@ -1,6 +1,9 @@
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../services/analytics_service.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/signup_screen.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
@@ -17,9 +20,11 @@ import '../../features/signal_map/presentation/screens/signal_map_screen.dart';
 import '../../features/splash/presentation/screens/splash_screen.dart';
 import '../../features/statistics/presentation/screens/statistics_screen.dart';
 
-final GoRouter appRouter = GoRouter(
+GoRouter _buildAppRouter({List<NavigatorObserver> observers = const []}) {
+  return GoRouter(
   initialLocation: AppRoutes.splash,
   debugLogDiagnostics: false,
+  observers: observers,
   routes: <RouteBase>[
     GoRoute(
       path: AppRoutes.splash,
@@ -82,10 +87,16 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const SettingsScreen(),
     ),
   ],
-);
+  );
+}
 
 final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((ref) {
-  return appRouter;
+  final analytics = ref.watch(firebaseAnalyticsProvider);
+  return _buildAppRouter(
+    observers: [
+      if (analytics != null) FirebaseAnalyticsObserver(analytics: analytics),
+    ],
+  );
 });
 
 class AppRoutes {

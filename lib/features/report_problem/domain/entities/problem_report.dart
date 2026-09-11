@@ -22,6 +22,11 @@ class ProblemReport {
     this.operatorName,
     this.networkType,
     this.linkedMeasurementId,
+    this.signalDbm,
+    this.downloadMbps,
+    this.uploadMbps,
+    this.pingMs,
+    this.gpsAccuracyMeters,
     this.status = ReportStatus.pending,
   });
 
@@ -37,6 +42,19 @@ class ProblemReport {
   final String? operatorName;
   final String? networkType;
   final String? linkedMeasurementId;
+
+  /// Snapshot of the citizen's most recent measurement at the moment
+  /// this report was submitted (null if no measurement was available
+  /// on-device yet — never a fabricated value). Stored on the report
+  /// itself, not just referenced via [linkedMeasurementId], so the
+  /// evidence in "My Reports" and the exported PDF is self-contained
+  /// even if the original measurement is later pruned.
+  final int? signalDbm;
+  final double? downloadMbps;
+  final double? uploadMbps;
+  final int? pingMs;
+  final double? gpsAccuracyMeters;
+
   final ReportStatus status;
   final DateTime createdAt;
   final DateTime updatedAt;

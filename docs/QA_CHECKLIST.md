@@ -1,26 +1,40 @@
 # QA Checklist — Darazinda Connect
 
-**Important**: this codebase was written in a sandboxed environment
-with no Flutter/Dart SDK installed, so none of the commands or manual
-tests below have actually been executed against this code yet. Nothing
-in this document should be read as "verified" — it is the checklist to
-run through in a real Flutter environment before any release, ordered
-the way the project brief requires (analyze → tests → manual → release).
+**Update (Phase 2):** sections 1 and 2 below have now genuinely been
+run, in a temporary Flutter 3.24.5 / Dart 3.5.4 install inside this
+environment — not simulated. Results are inlined below each command.
+Section 4 (release build) has **not** been run: this session's network
+policy blocks `dl.google.com`, so the Android SDK could not be
+installed here. Sections 3 (manual device testing) and 4 still require
+a real machine/device — see `docs/REAL_DEVICE_TESTING.md`.
 
 ## 1. Static analysis
 ```bash
 flutter pub get
-flutter pub run build_runner build --delete-conflicting-outputs
+dart run build_runner build --delete-conflicting-outputs
 flutter analyze
 ```
-Expect to fix: Drift/Freezed codegen must run first (`*.g.dart` files
-are gitignored, see `.gitignore`) or every file importing
-`app_database.dart` will show unresolved `part` errors.
+**Result at last verification: `flutter analyze` → "No issues found!"**
+(after fixing several real errors this pass surfaced — see git history
+around the Phase 2 commit — including a `locationServiceProvider`
+import missing in three screens, a Geolocator API mismatch, and a
+`CardThemeData` vs `CardTheme` Flutter-version mismatch).
+
+Before analyzing: Drift codegen must run first (`*.g.dart` files are
+gitignored, see `.gitignore`) or every file importing
+`app_database.dart` will show unresolved `part` errors. Note also:
+`riverpod_generator`/`freezed`/`json_serializable` were removed from
+`pubspec.yaml` — they were unused dead dependencies and, at the time
+of this check, crashed against this Flutter SDK's newer Dart syntax
+(see the version note in the main README). Only `drift_dev` codegen
+runs now.
 
 ## 2. Automated tests
 ```bash
 flutter test
 ```
+**Result at last verification: All 11 tests passed.**
+
 Currently covered (pure Dart logic, no Flutter bindings needed beyond
 `flutter_test`):
 - `test/core/signal_quality_test.dart` — dBm → quality bucket mapping,
@@ -60,12 +74,28 @@ Not yet written (do before release):
 | Large datasets | Seed several thousand local measurements | Map clustering (`flutter_map_marker_cluster`) keeps the map responsive; dead-zone analysis (`O(n^2)` proximity clustering) may need the geohash optimization noted in `docs/ARCHITECTURE.md` past ~10-20k points |
 
 ## 4. Release build sanity
+
+**Not run in this environment.** This session's egress network policy
+blocks `dl.google.com` (403, organization policy), so the Android SDK
+could not be downloaded and no `flutter build` command targeting
+Android could be attempted here. `flutter analyze`/`flutter test` were
+still genuinely run and pass (sections 1-2) since those don't need the
+Android SDK. Run the following yourself with Android Studio / the
+Android SDK installed:
+
 ```bash
+flutter build apk --debug      # sanity check first — no signing needed
 flutter build apk --release
 flutter build appbundle --release
 ```
-Before running these: replace the debug signing config in
-`android/app/build.gradle` with a real release keystore (see
+Before running the `--release` commands: replace the debug signing
+config in `android/app/build.gradle` with a real release keystore (see
 `docs/PLAY_STORE_PREP.md`), and confirm `firebase_options.dart` /
-`google-services.json` are the real, `flutterfire configure`-generated
-files (not the placeholders committed here).
+`android/app/google-services.json` are the real, `flutterfire
+configure`-generated files (not the placeholders committed here) — or
+the app will fall back to the offline/demo-mode path in `main.dart`
+rather than actually using Firebase. Note: `google-services.json`'s
+absence no longer breaks the Gradle build itself (the Firebase Gradle
+plugins are applied conditionally — see the comment in
+`android/app/build.gradle`); it only means Firebase features won't
+work in that build, which is expected and safe for local iteration.

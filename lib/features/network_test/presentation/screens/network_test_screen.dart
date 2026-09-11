@@ -72,7 +72,18 @@ class NetworkTestScreen extends ConsumerWidget {
                           : null, stageLabel: _stageLabel(state.stage)),
                 ),
               ),
-              const SizedBox(height: 12),
+              if (state.isCancellable) ...[
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: notifier.cancelTest,
+                    icon: const Icon(Icons.close),
+                    label: const Text('Cancel Test'),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+              const SizedBox(height: 4),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -114,10 +125,10 @@ class _NoBoostDisclaimer extends StatelessWidget {
         color: AppColors.accentCyan.withOpacity(0.08),
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Row(
+      child: const Row(
         children: [
-          const Icon(Icons.info_outline, size: 18, color: AppColors.primaryBlue),
-          const SizedBox(width: 8),
+          Icon(Icons.info_outline, size: 18, color: AppColors.primaryBlue),
+          SizedBox(width: 8),
           Expanded(
             child: Text(
               'This app measures and reports network conditions. It cannot '
@@ -168,12 +179,28 @@ class _IdleOrRunningView extends StatelessWidget {
         ),
       );
     }
-    return Padding(
-      padding: const EdgeInsets.only(top: 60),
+    if (state.stage == TestStage.cancelled) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 60),
+        child: Column(
+          children: [
+            Icon(Icons.cancel_outlined, size: 48, color: AppColors.textSecondary),
+            SizedBox(height: 12),
+            Text(
+              'Test cancelled. No measurement was saved.',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.body,
+            ),
+          ],
+        ),
+      );
+    }
+    return const Padding(
+      padding: EdgeInsets.only(top: 60),
       child: Column(
         children: [
-          const Icon(Icons.network_check, size: 56, color: AppColors.primaryBlue),
-          const SizedBox(height: 16),
+          Icon(Icons.network_check, size: 56, color: AppColors.primaryBlue),
+          SizedBox(height: 16),
           Text(
             'Tap "Start Test" to measure your signal, speed and location.',
             textAlign: TextAlign.center,
@@ -198,7 +225,7 @@ class _ResultView extends StatelessWidget {
       children: [
         Row(
           children: [
-            Text('Result', style: AppTextStyles.title),
+            const Text('Result', style: AppTextStyles.title),
             const Spacer(),
             SignalBadge(quality: m.signalQuality),
           ],

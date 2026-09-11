@@ -1,0 +1,37 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "measurements",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "operator", "order": "ASCENDING" },
+        { "fieldPath": "measuredAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "measurements",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "networkType", "order": "ASCENDING" },
+        { "fieldPath": "measuredAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "reports",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "reports",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

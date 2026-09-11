@@ -3,15 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../network_test/presentation/providers/network_test_provider.dart';
+import '../../../network_test/data/repositories/community_measurement_repository.dart';
 import '../../data/operator_stats_calculator.dart';
 
 final Provider<OperatorStatsCalculator> operatorStatsCalculatorProvider =
     Provider<OperatorStatsCalculator>((ref) => OperatorStatsCalculator());
 
+/// Community-wide operator comparison — sample sizes and averages
+/// span every synced device, not just this one, which is the whole
+/// point of comparing operators (see AppConstants.operatorComparisonMinSamples).
 final Provider<List<OperatorStats>> operatorStatsProvider =
     Provider<List<OperatorStats>>((ref) {
-  final measurements = ref.watch(allMeasurementsProvider).value ?? [];
+  final measurements = ref.watch(combinedMeasurementsProvider).value ?? [];
   return ref.watch(operatorStatsCalculatorProvider).calculate(measurements);
 });
 

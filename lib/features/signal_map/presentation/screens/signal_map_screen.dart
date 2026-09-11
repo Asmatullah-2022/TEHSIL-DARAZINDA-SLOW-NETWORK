@@ -6,8 +6,8 @@ import 'package:latlong2/latlong.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../network_test/data/repositories/community_measurement_repository.dart';
 import '../../../network_test/domain/entities/measurement.dart';
-import '../../../network_test/presentation/providers/network_test_provider.dart';
 import '../widgets/map_filter_sheet.dart';
 import '../providers/map_filter_provider.dart';
 
@@ -23,7 +23,7 @@ class SignalMapScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final measurementsAsync = ref.watch(allMeasurementsProvider);
+    final measurementsAsync = ref.watch(combinedMeasurementsProvider);
     final filters = ref.watch(mapFilterProvider);
 
     return Scaffold(
@@ -68,7 +68,7 @@ class SignalMapScreen extends ConsumerWidget {
                         for (final m in filtered) _markerFor(m),
                       ],
                       builder: (context, markers) => Container(
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                           color: AppColors.primaryBlue,
                           shape: BoxShape.circle,
                         ),
@@ -84,19 +84,21 @@ class SignalMapScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-              Positioned(
-                left: 12,
+              PositionedDirectional(
+                start: 12,
                 bottom: 12,
                 child: _Legend(),
               ),
               if (filtered.isEmpty)
-                const Positioned.fill(
+                Positioned.fill(
                   child: IgnorePointer(
                     child: Center(
                       child: Padding(
-                        padding: EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(24),
                         child: Text(
-                          'No measurements match the current filters yet.',
+                          measurements.isEmpty
+                              ? 'No community measurements yet.'
+                              : 'No measurements match the current filters yet.',
                           textAlign: TextAlign.center,
                         ),
                       ),

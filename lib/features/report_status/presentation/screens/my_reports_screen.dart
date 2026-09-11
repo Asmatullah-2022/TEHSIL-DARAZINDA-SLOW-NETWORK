@@ -105,12 +105,21 @@ class _ReportCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Align(
-            alignment: Alignment.centerRight,
+            alignment: AlignmentDirectional.centerEnd,
             child: TextButton.icon(
               icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
               label: const Text('Export PDF'),
               onPressed: () async {
-                final bytes = await PdfReportGenerator().generate(report);
+                // Counts only the measurement actually linked to this
+                // report — deliberately not an approximate "nearby
+                // measurements" count, to avoid overstating the
+                // evidence behind a single report.
+                final evidenceCount =
+                    report.linkedMeasurementId != null ? 1 : 0;
+                final bytes = await PdfReportGenerator().generate(
+                  report,
+                  evidenceMeasurementCount: evidenceCount,
+                );
                 await Printing.sharePdf(
                   bytes: bytes,
                   filename: '${report.id}.pdf',

@@ -64,6 +64,15 @@ class Reports extends Table {
   TextColumn get networkType => text().nullable()();
   TextColumn get linkedMeasurementId => text().nullable()();
 
+  // Snapshot of the linked measurement's readings at submission time —
+  // stored directly so "My Reports" and the exported PDF are
+  // self-contained evidence, not just a dangling foreign key.
+  IntColumn get signalDbm => integer().nullable()();
+  RealColumn get downloadMbps => real().nullable()();
+  RealColumn get uploadMbps => real().nullable()();
+  IntColumn get pingMs => integer().nullable()();
+  RealColumn get gpsAccuracyMeters => real().nullable()();
+
   TextColumn get status =>
       text().withDefault(const Constant('pending'))(); // ReportStatus enum
   DateTimeColumn get createdAt => dateTime()();

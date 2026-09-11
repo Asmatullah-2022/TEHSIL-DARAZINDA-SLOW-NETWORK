@@ -2,8 +2,12 @@ plugins {
     id "com.android.application"
     id "kotlin-android"
     id "dev.flutter.flutter-gradle-plugin"
-    id "com.google.gms.google-services"
-    id "com.google.firebase.crashlytics"
+    // Applied conditionally below, only once a real google-services.json
+    // exists. Applying these unconditionally makes the Gradle build fail
+    // at configuration time on any checkout without a configured Firebase
+    // project (see comment near the bottom of this file).
+    id "com.google.gms.google-services" apply false
+    id "com.google.firebase.crashlytics" apply false
 }
 
 def localProperties = new Properties()
@@ -62,4 +66,21 @@ flutter {
 
 dependencies {
     implementation platform('com.google.firebase:firebase-bom:33.1.0')
+}
+
+// google-services.json is intentionally NOT committed (see .gitignore —
+// it would embed a real Firebase project's API keys). Run
+// `flutterfire configure` to generate a real one before release; until
+// then these Firebase Gradle plugins are skipped so `flutter build apk`
+// still succeeds for local development/testing of everything that
+// doesn't need Firebase.
+if (file("google-services.json").exists()) {
+    apply plugin: "com.google.gms.google-services"
+    apply plugin: "com.google.firebase.crashlytics"
+} else {
+    logger.warn(
+        "WARNING: android/app/google-services.json not found — " +
+        "Firebase Gradle plugins were skipped. Run `flutterfire configure` " +
+        "before building a release intended to use Firebase."
+    )
 }

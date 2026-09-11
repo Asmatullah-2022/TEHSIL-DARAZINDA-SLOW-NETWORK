@@ -87,6 +87,23 @@ class _OverviewPane extends StatelessWidget {
     return StreamBuilder<int>(
       stream: stream,
       builder: (context, snapshot) {
+        Widget valueWidget;
+        if (snapshot.hasError) {
+          valueWidget = const Tooltip(
+            message: 'Failed to load — check Firestore rules/connection',
+            child: Icon(Icons.error_outline, color: Colors.red, size: 24),
+          );
+        } else if (snapshot.connectionState == ConnectionState.waiting) {
+          valueWidget = const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          );
+        } else {
+          valueWidget = Text('${snapshot.data ?? 0}',
+              style:
+                  const TextStyle(fontSize: 28, fontWeight: FontWeight.bold));
+        }
         return Container(
           width: 180,
           padding: const EdgeInsets.all(16),
@@ -99,8 +116,7 @@ class _OverviewPane extends StatelessWidget {
             children: [
               Text(label, style: const TextStyle(color: Colors.grey)),
               const SizedBox(height: 8),
-              Text('${snapshot.data ?? '—'}',
-                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+              valueWidget,
             ],
           ),
         );
@@ -126,7 +142,23 @@ class _MapPane extends StatelessWidget {
     return StreamBuilder<List<AdminMeasurement>>(
       stream: repo.watchMeasurements(),
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Failed to load measurements: ${snapshot.error}',
+              style: const TextStyle(color: Colors.red),
+            ),
+          );
+        }
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
         final measurements = snapshot.data ?? [];
+        if (measurements.isEmpty) {
+          return const Center(
+            child: Text('No community measurements yet.'),
+          );
+        }
         return FlutterMap(
           options: const MapOptions(
             initialCenter: LatLng(31.9350, 70.5940),

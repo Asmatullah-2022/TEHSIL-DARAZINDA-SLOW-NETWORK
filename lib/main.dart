@@ -24,7 +24,7 @@ Future<void> main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
     firebaseReady = true;
-  } catch (error, stack) {
+  } catch (error) {
     debugPrint('Firebase not configured yet — running in offline/demo '
         'mode. Run `flutterfire configure` before release. ($error)');
   }

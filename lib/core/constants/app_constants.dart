@@ -36,7 +36,24 @@ class AppConstants {
       'https://speed.hetzner.de/100MB.bin';
   static const String speedTestUploadUrl =
       'https://httpbin.org/post';
+
+  /// Hard cap on how many bytes the download test will pull before it
+  /// stops itself, regardless of the remote file's actual size — keeps
+  /// data usage bounded and predictable on a fast connection. 6 MB is
+  /// enough elapsed transfer time (well over a second even on a
+  /// multi-hundred-Mbps link) for a stable throughput estimate.
+  static const int speedTestMaxDownloadBytes = 6 * 1024 * 1024;
+
+  /// Fixed upload payload size — small and predictable regardless of
+  /// connection speed.
+  static const int speedTestUploadBytes = 2 * 1024 * 1024;
+
+  /// A well-known, always-on public DNS resolver used as a latency
+  /// probe (TCP connect round-trip to port 53). Using its IP directly
+  /// (rather than a hostname) means the probe measures pure network
+  /// round-trip time, not DNS resolution time for the probe itself.
   static const String pingHost = '8.8.8.8';
+  static const int pingPort = 53;
 
   static const double defaultMapLat = 31.9350; // Darazinda Tehsil approx.
   static const double defaultMapLng = 70.5940;

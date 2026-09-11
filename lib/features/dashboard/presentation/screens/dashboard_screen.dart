@@ -42,10 +42,10 @@ class DashboardScreen extends ConsumerWidget {
                   padding: EdgeInsets.symmetric(vertical: 24),
                   child: Center(child: CircularProgressIndicator()),
                 ),
-                error: (e, st) => _StatusCard(measurement: null),
+                error: (e, st) => const _StatusCard(measurement: null),
               ),
               const SizedBox(height: 20),
-              Text('Quick Actions', style: AppTextStyles.title),
+              const Text('Quick Actions', style: AppTextStyles.title),
               const SizedBox(height: 12),
               GridView.count(
                 crossAxisCount: 2,
@@ -94,7 +94,7 @@ class DashboardScreen extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 20),
-              Text('Community Surveys', style: AppTextStyles.title),
+              const Text('Community Surveys', style: AppTextStyles.title),
               const SizedBox(height: 12),
               _SurveyRow(
                 icon: Icons.school_outlined,
@@ -134,11 +134,11 @@ class _ConnectivityStatusBanner extends StatelessWidget {
         color: AppColors.pendingSync.withOpacity(0.1),
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Row(
+      child: const Row(
         children: [
-          const Icon(Icons.cloud_off, size: 18, color: AppColors.pendingSync),
-          const SizedBox(width: 8),
-          const Expanded(
+          Icon(Icons.cloud_off, size: 18, color: AppColors.pendingSync),
+          SizedBox(width: 8),
+          Expanded(
             child: Text(
               'You are offline. Measurements and reports will be saved '
               'locally and synced automatically when you reconnect.',

@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/services/analytics_service.dart';
 import '../../data/repositories/measurement_repository.dart';
 import '../../domain/entities/measurement.dart';
 
@@ -13,6 +16,7 @@ enum TestStage {
   saving,
   done,
   error,
+  cancelled,
 }
 
 class NetworkTestState {
@@ -28,7 +32,14 @@ class NetworkTestState {
 
   bool get isRunning => stage != TestStage.idle &&
       stage != TestStage.done &&
-      stage != TestStage.error;
+      stage != TestStage.error &&
+      stage != TestStage.cancelled;
+
+  /// Only the download/upload legs are actually abortable — GPS lookup,
+  /// telephony reads, and the local save are fast and not worth
+  /// offering a cancel button for.
+  bool get isCancellable =>
+      stage == TestStage.testingDownload || stage == TestStage.testingUpload;
 
   NetworkTestState copyWith({
     TestStage? stage,
@@ -44,9 +55,11 @@ class NetworkTestState {
 }
 
 class NetworkTestNotifier extends StateNotifier<NetworkTestState> {
-  NetworkTestNotifier(this._repository) : super(const NetworkTestState());
+  NetworkTestNotifier(this._repository, this._analytics)
+      : super(const NetworkTestState());
 
   final MeasurementRepository _repository;
+  final AnalyticsService _analytics;
 
   static const Map<String, TestStage> _stageMap = {
     'locating': TestStage.locating,
@@ -67,6 +80,13 @@ class NetworkTestNotifier extends StateNotifier<NetworkTestState> {
         },
       );
       state = NetworkTestState(stage: TestStage.done, result: measurement);
+      unawaited(_analytics.logNetworkTestCompleted(
+        hasSignalData: measurement.signalDbm != null,
+        hasSpeedData: measurement.hasSpeedData,
+      ));
+    } on MeasurementCancelledException {
+      state = const NetworkTestState(stage: TestStage.cancelled);
+      unawaited(_analytics.logNetworkTestCancelled());
     } on MeasurementException catch (e) {
       state = NetworkTestState(stage: TestStage.error, errorCode: e.message);
     } catch (_) {
@@ -77,13 +97,21 @@ class NetworkTestNotifier extends StateNotifier<NetworkTestState> {
     }
   }
 
+  /// Stops the in-flight test (see
+  /// [MeasurementRepository.cancelRunningTest]). No partial result is
+  /// saved — the user can start a fresh test whenever they're ready.
+  void cancelTest() => _repository.cancelRunningTest();
+
   void reset() => state = const NetworkTestState();
 }
 
 final StateNotifierProvider<NetworkTestNotifier, NetworkTestState>
     networkTestProvider =
     StateNotifierProvider<NetworkTestNotifier, NetworkTestState>((ref) {
-  return NetworkTestNotifier(ref.watch(measurementRepositoryProvider));
+  return NetworkTestNotifier(
+    ref.watch(measurementRepositoryProvider),
+    ref.watch(analyticsServiceProvider),
+  );
 });
 
 final StreamProvider<List<Measurement>> allMeasurementsProvider =

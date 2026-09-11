@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../../core/services/analytics_service.dart';
 import '../../../../core/services/location_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../network_test/data/repositories/measurement_repository.dart';
 import '../../../network_test/presentation/providers/network_test_provider.dart';
 import '../../data/report_repository.dart';
 import '../../domain/entities/problem_category.dart';
@@ -60,9 +62,44 @@ class _ReportProblemScreenState extends ConsumerState<ReportProblemScreen> {
       return;
     }
 
+    final repo = ref.read(reportRepositoryProvider);
+    final duplicate = await repo.findLikelyDuplicate(
+      category: _category!,
+      latitude: locationResult.position.latitude,
+      longitude: locationResult.position.longitude,
+    );
+
+    if (duplicate != null) {
+      setState(() => _isSubmitting = false);
+      if (!mounted) return;
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Similar report already submitted'),
+          content: Text(
+            'You reported "${_category!.label}" near this location a few '
+            'minutes ago (Report ID: ${duplicate.id}). Do you still want '
+            'to submit a new, separate report?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Submit Anyway'),
+            ),
+          ],
+        ),
+      );
+      if (proceed != true) return;
+      setState(() => _isSubmitting = true);
+    }
+
     final lastMeasurement = await ref.read(lastMeasurementProvider.future);
 
-    final report = await ref.read(reportRepositoryProvider).submitReport(
+    final report = await repo.submitReport(
           category: _category!,
           latitude: locationResult.position.latitude,
           longitude: locationResult.position.longitude,
@@ -73,7 +110,13 @@ class _ReportProblemScreenState extends ConsumerState<ReportProblemScreen> {
           operatorName: lastMeasurement?.operatorName,
           networkType: lastMeasurement?.networkType,
           linkedMeasurementId: lastMeasurement?.id,
+          signalDbm: lastMeasurement?.signalDbm,
+          downloadMbps: lastMeasurement?.downloadMbps,
+          uploadMbps: lastMeasurement?.uploadMbps,
+          pingMs: lastMeasurement?.pingMs,
+          gpsAccuracyMeters: locationResult.position.accuracy,
         );
+    ref.read(analyticsServiceProvider).logReportSubmitted(_category!.name);
 
     if (!mounted) return;
     setState(() {
@@ -110,7 +153,7 @@ class _ReportProblemScreenState extends ConsumerState<ReportProblemScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              Text('Problem category', style: AppTextStyles.title),
+              const Text('Problem category', style: AppTextStyles.title),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -126,7 +169,7 @@ class _ReportProblemScreenState extends ConsumerState<ReportProblemScreen> {
                 ],
               ),
               const SizedBox(height: 20),
-              Text('Description (optional)', style: AppTextStyles.title),
+              const Text('Description (optional)', style: AppTextStyles.title),
               const SizedBox(height: 8),
               TextField(
                 controller: _descriptionController,
@@ -136,7 +179,7 @@ class _ReportProblemScreenState extends ConsumerState<ReportProblemScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              Text('Photo (optional)', style: AppTextStyles.title),
+              const Text('Photo (optional)', style: AppTextStyles.title),
               const SizedBox(height: 8),
               OutlinedButton.icon(
                 onPressed: _pickPhoto,
@@ -189,7 +232,7 @@ class _SubmittedView extends StatelessWidget {
               const SizedBox(height: 8),
               Text('Report ID: $reportId', style: AppTextStyles.body),
               const SizedBox(height: 8),
-              Text(
+              const Text(
                 'You can track its status under "My Reports". It will '
                 'sync automatically once you are online.',
                 style: AppTextStyles.bodySecondary,

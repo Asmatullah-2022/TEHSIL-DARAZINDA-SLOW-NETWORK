@@ -4,16 +4,21 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../network_test/presentation/providers/network_test_provider.dart';
+import '../../../network_test/data/repositories/community_measurement_repository.dart';
 import '../../data/dead_zone_analyzer.dart';
 import '../../domain/probable_dead_zone.dart';
 
 final Provider<DeadZoneAnalyzer> deadZoneAnalyzerProvider =
     Provider<DeadZoneAnalyzer>((ref) => DeadZoneAnalyzer());
 
+/// Runs over the combined local + community dataset — a probable
+/// connectivity problem should reflect everyone's evidence, not just
+/// this device's own measurements. See docs/ARCHITECTURE.md for why a
+/// server-side (Cloud Functions) version of this same analysis also
+/// exists for the admin dashboard at community scale.
 final Provider<List<ProbableDeadZone>> probableDeadZonesProvider =
     Provider<List<ProbableDeadZone>>((ref) {
-  final measurements = ref.watch(allMeasurementsProvider).value ?? [];
+  final measurements = ref.watch(combinedMeasurementsProvider).value ?? [];
   return ref.watch(deadZoneAnalyzerProvider).analyze(measurements);
 });
 
@@ -86,12 +91,12 @@ class _DeadZoneCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
-              const Icon(Icons.warning_amber_rounded,
+              Icon(Icons.warning_amber_rounded,
                   color: AppColors.signalWeak, size: 20),
-              const SizedBox(width: 8),
-              const Expanded(
+              SizedBox(width: 8),
+              Expanded(
                 child: Text('Probable Connectivity Problem',
                     style: AppTextStyles.title),
               ),
@@ -131,7 +136,7 @@ class _DeadZoneCard extends StatelessWidget {
           Expanded(
               flex: 3,
               child: Text(value,
-                  style: AppTextStyles.body, textAlign: TextAlign.right)),
+                  style: AppTextStyles.body, textAlign: TextAlign.end)),
         ],
       ),
     );
