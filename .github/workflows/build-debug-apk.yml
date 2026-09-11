@@ -1,0 +1,87 @@
+name: Build Debug APK
+
+# Builds a debug Android APK entirely on GitHub's cloud runners — no
+# local Flutter/Android Studio/SDK install needed. Runs automatically
+# on every push to this branch, and can also be triggered manually
+# from the Actions tab (useful from a phone browser: Actions → this
+# workflow → "Run workflow").
+#
+# Pinned to Flutter 3.24.5 to match what has actually been verified
+# against this codebase (see docs/QA_CHECKLIST.md) — a newer Flutter/
+# Dart SDK's `drift_dev` codegen step is known to crash on this
+# project until an upstream `analyzer` fix lands (see the version note
+# in README.md). Bump this once that's confirmed fixed upstream.
+on:
+  push:
+    branches:
+      - claude/darazinda-connect-app-8e727o
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build-debug-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter 3.24.5
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.5"
+          channel: stable
+          cache: true
+
+      - name: flutter --version
+        run: flutter --version
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate Drift database code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Static analysis
+        run: flutter analyze
+
+      - name: Run tests
+        run: flutter test
+
+      - name: Build debug APK
+        run: flutter build apk --debug
+
+      - name: Upload APK as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: darazinda-connect-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 30
+
+      # Also publish to a single, stable Release so the APK can be
+      # downloaded on a phone with one tap (no zip extraction, unlike
+      # workflow artifacts) — always at the same URL:
+      # https://github.com/<owner>/<repo>/releases/tag/debug-latest
+      - name: Publish/update "debug-latest" release
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: debug-latest
+          name: Darazinda Connect — latest debug build
+          body: |
+            Automatically built debug APK from commit ${{ github.sha }}.
+            This is a DEBUG build for testing only — not signed for
+            release, not for Play Store distribution.
+
+            Install: download `app-debug.apk` below directly on your
+            Android phone and open it (allow "install unknown apps"
+            for your browser/file manager if prompted).
+          files: build/app/outputs/flutter-apk/app-debug.apk
+          prerelease: true

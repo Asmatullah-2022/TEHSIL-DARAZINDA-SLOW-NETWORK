@@ -19,6 +19,9 @@ android/local.properties
 android/**/google-services.json
 android/key.properties
 android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+android/.gradle/
+android/app/build/
+android/build/
 *.jks
 *.keystore
 
