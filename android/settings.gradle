@@ -18,18 +18,26 @@ pluginManagement {
 
 plugins {
     id "dev.flutter.flutter-plugin-loader" version "1.0.0"
-    // AGP/Kotlin versions pinned to EXACTLY what Flutter 3.24.5's own
-    // `flutter create` template generates (verified by generating a
-    // reference project with this same Flutter SDK and diffing it
-    // against this file). Flutter plugin packages (geolocator_android
-    // etc.) assume this baseline; a newer AGP (8.3.0 was here before)
-    // changed internal LibraryExtension/BaseExtension APIs enough that
-    // the Flutter Gradle plugin's `flutter` property injection into
-    // plugin subprojects broke with "Could not get unknown property
-    // 'flutter' for extension 'android'" — the real root cause of the
-    // CI build failures fixed by this change. See git history.
+    // AGP pinned to what Flutter 3.24.5's own `flutter create` template
+    // generates (verified by generating a reference project with this
+    // same Flutter SDK and diffing it against this file) — a newer AGP
+    // (8.3.0 was here originally) changed internal LibraryExtension/
+    // BaseExtension APIs enough to break plugin subproject evaluation.
+    // See android/build.gradle's `gradle.beforeProject` hook, which now
+    // explicitly bridges the Flutter Gradle plugin's `flutter` extension
+    // to plugin subprojects (the actual, permanent fix for that failure
+    // — see git history) rather than relying on AGP version alone.
     id "com.android.application" version "8.1.0" apply false
-    id "org.jetbrains.kotlin.android" version "1.8.22" apply false
+    // Kotlin bumped from the template's 1.8.22: firebase-bom 33.1.0
+    // pulls in Google Play Services libraries (e.g.
+    // play-services-measurement-impl 22.5.0, used by firebase_analytics)
+    // whose .kotlin_module metadata is version 2.1.0. Kotlin 1.8.22's
+    // compiler can only read metadata up to 1.8.0, so
+    // `:firebase_analytics:compileDebugKotlin` failed with "Module was
+    // compiled with an incompatible version of Kotlin" — confirmed by
+    // the actual CI log, not guessed. 2.1.0 is the oldest stable Kotlin
+    // release whose own metadata version is 2.1.0, so it can read it.
+    id "org.jetbrains.kotlin.android" version "2.1.0" apply false
     id "com.google.gms.google-services" version "4.4.2" apply false
     id "com.google.firebase.crashlytics" version "3.0.2" apply false
 }
